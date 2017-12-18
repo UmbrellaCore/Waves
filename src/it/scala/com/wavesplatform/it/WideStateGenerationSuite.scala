@@ -1,5 +1,6 @@
 package com.wavesplatform.it
 
+import com.typesafe.config.ConfigFactory
 import com.wavesplatform.it.api._
 import org.scalatest._
 
@@ -10,6 +11,14 @@ import scala.concurrent.duration._
 
 class WideStateGenerationSuite extends FreeSpec with IntegrationNodesInitializationAndStopping
   with Matchers with TransferSending with MultipleNodesApi {
+
+  override protected lazy val docker = new Docker(
+    suiteConfig = ConfigFactory.parseString(
+      s"""
+         |akka.http.server.parsing.max-content-length = 3737439
+       """.stripMargin),
+    tag = getClass.getSimpleName
+  )
 
   override lazy val nodes: Seq[Node] = docker.startNodes(
     NodeConfigs.newBuilder
@@ -22,14 +31,14 @@ class WideStateGenerationSuite extends FreeSpec with IntegrationNodesInitializat
   private val requestsCount = 10000
 
   "Generate a lot of transactions and synchronise" in result(for {
-    b <- traverse(nodes)(balanceForNode).map(_.toMap)
+    b <- traverse(nodes)(balanceForNode1).map(_.toMap)
     lastTx <- {
       log.debug(
         s"""Balances:
            |${b.map { case (account, balance) => s"$account -> $balance" }.mkString("\n")}""".stripMargin)
 
       // Can take up to 10 minutes!
-      processRequests(generateTransfersToRandomAddresses(requestsCount / 2, b) ++ generateTransfersBetweenAccounts(requestsCount / 2, b))
+      processRequests(generateTransfersToRandomAddresses(requestsCount, b))
     }
 
     _ <- {

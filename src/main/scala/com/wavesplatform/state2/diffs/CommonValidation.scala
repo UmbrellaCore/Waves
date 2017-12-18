@@ -58,8 +58,8 @@ object CommonValidation {
     case ptx: PaymentTransaction if ptx.timestamp < settings.requirePaymentUniqueIdAfter => Right(tx)
     case _ =>
       if (state.containsTransaction(tx.id())) {
-        val txHeight = state.transactionInfo(tx.id()).map(_._1)
-        Left(GenericError(s"Txs cannot be duplicated. Target height is: $height, current height is: ${state.height}, existing tx height is: $txHeight Tx with such id already present"))
+        val txHeight = state.transactionInfo(tx.id())
+        Left(GenericError(s"Txs cannot be duplicated: ${tx.id()}. Target height is: $height, current height is: ${state.height}, existing tx height is: ${txHeight.map(_._1)} Tx with such id already present. $tx vs ${txHeight.flatMap(_._2)}"))
       }
       else Right(tx)
   }

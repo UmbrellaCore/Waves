@@ -1,6 +1,6 @@
 package com.wavesplatform.it.api
 
-import java.io.IOException
+import java.io.{IOException, PrintWriter}
 import java.util.concurrent.TimeoutException
 
 import com.wavesplatform.features.api.ActivationStatus
@@ -207,12 +207,19 @@ trait NodeApi {
   def assetsBalance(address: String): Future[FullAssetsInfo] =
     get(s"/assets/balance/$address").as[FullAssetsInfo]
 
-
   def transfer(sourceAddress: String, recipient: String, amount: Long, fee: Long): Future[Transaction] =
     postJson("/assets/transfer", TransferRequest(None, None, amount, fee, sourceAddress, None, recipient)).as[Transaction]
 
   def signedTransfer(transfer: SignedTransferRequest): Future[Transaction] =
     postJson("/assets/broadcast/transfer", transfer).as[Transaction]
+
+  def batchSignedTransfer(transfers: Seq[SignedTransferRequest]): Future[Seq[Transaction]] = {
+    val r = postJson("/assets/broadcast/batch-transfer", transfers)
+    r.map(_.getResponseBody).flatMap { x =>
+      new PrintWriter("/Users/freezy/Projects/work/waves-platform/waves/target/logs/batchSignedTransfer.json").append(x).close()
+      r.as[Seq[Transaction]]
+    }
+  }
 
   def createAlias(targetAddress: String, alias: String, fee: Long): Future[Transaction] =
     postJson("/alias/create", CreateAliasRequest(targetAddress, alias, fee)).as[Transaction]
